@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 
-def load_data(base_path="../data"):
+def load_data(base_path="data"):
     """ Load the data in PyTorch Tensor.
 
     :return: (zero_train_matrix, train_data, valid_data, test_data)
@@ -71,6 +71,7 @@ class AutoEncoder(nn.Module):
         # Use sigmoid activations for f and g.                              #
         #####################################################################
         out = inputs
+        out = F.sigmoid(self.h(F.sigmoid(self.g(out))))
         #####################################################################
         #                       END OF YOUR CODE                            #
         #####################################################################
@@ -91,6 +92,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     :return: None
     """
     # TODO: Add a regularizer to the cost function. 
+
     
     # Tell PyTorch you are training the model.
     model.train()
@@ -163,11 +165,11 @@ def main():
     #####################################################################
     # Set model hyperparameters.
     k = None
-    model = None
+    model = AutoEncoder(train_matrix.shape[1])
 
     # Set optimization hyperparameters.
-    lr = None
-    num_epoch = None
+    lr = 0.001
+    num_epoch = 100
     lamb = None
 
     train(model, lr, lamb, train_matrix, zero_train_matrix,
