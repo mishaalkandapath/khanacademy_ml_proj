@@ -218,13 +218,17 @@ def main():
         test_acc = evaluate(model, zero_train_matrix, test_data)
         print("Test Accuracy: {}".format(test_acc))
     #the model performs significantly worse in terms of loss, less but still worse in terms of validation accuracy
-
-
-
     
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
+
+"""
+Difference betqween ALS and Neural networks:
+ALS is a matrix factorization method. Neural networks are machine learning algorithms
+ALS is used best for best for filling in missing values in a matrix, whereas neural networks are used for a large variety of tasks.
+als is linear, whereas neural nets are non-linear
+"""
 
 
 if __name__ == "__main__":
