@@ -228,6 +228,9 @@ Difference betqween ALS and Neural networks:
 ALS is a matrix factorization method. Neural networks are machine learning algorithms
 ALS is used best for best for filling in missing values in a matrix, whereas neural networks are used for a large variety of tasks.
 als is linear, whereas neural nets are non-linear
+ALS is more interprertable
+more computationally efficient
+
 """
 
 
