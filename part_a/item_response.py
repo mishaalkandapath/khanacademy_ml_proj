@@ -159,13 +159,15 @@ def irt(data, val_data, lr, iterations):
     :return: (theta, beta, val_acc_lst)
     """
     # TODO: Initialize theta and beta.
-    theta_map = set()
-    beta_map = set()
-    for a in range(len(data['is_correct'])):
-        theta_map.add(data['user_id'][a])
-        beta_map.add(data['question_id'][a])
-    theta = np.ones(len(theta_map))*0.5
-    beta = np.ones(len(beta_map))*0.5
+    # theta_map = set()
+    # beta_map = set()
+    # for a in range(len(data['is_correct'])):
+    #     theta_map.add(data['user_id'][a])
+    #     beta_map.add(data['question_id'][a])
+    # theta = np.ones(len(theta_map))*0.5
+    # beta = np.ones(len(beta_map))*0.5
+    theta = np.ones(data.shape[0])*0.5
+    beta = np.ones(data.shape[1])*0.5
 
     val_acc_lst = []
 
@@ -178,6 +180,29 @@ def irt(data, val_data, lr, iterations):
 
     # TODO: You may change the return values to achieve what you want.
     return theta, beta, val_acc_lst
+
+def irt_ensemble(data, lr, iterations):
+    """ Train IRT model.
+
+    You may optionally replace the function arguments to receive a matrix.
+
+    :param data: A dictionary {user_id: list, question_id: list,
+    is_correct: list}
+    :param val_data: A dictionary {user_id: list, question_id: list,
+    is_correct: list}
+    :param lr: float
+    :param iterations: int
+    :return: (theta, beta, val_acc_lst)
+    """
+    # TODO: Initialize theta and beta.
+    theta = np.ones(data.shape[0])*0.5
+    beta = np.ones(data.shape[1])*0.5
+
+    for i in range(iterations):
+        neg_lld = neg_log_likelihood(data, theta=theta, beta=beta)
+        theta, beta = update_theta_beta(data, lr, theta, beta)
+
+    return theta, beta
 
 
 def evaluate(data, theta, beta):
