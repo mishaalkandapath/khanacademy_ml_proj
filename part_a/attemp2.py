@@ -25,28 +25,16 @@ def neg_log_likelihood(data, theta, beta):
     # TODO:                                                             #
     # Implement the function as described in the docstring.             #
     #####################################################################
-    # data_arr = np.column_stack(data["user_id"], data["question_id"], data["is_correct"])
-    # log_lklihood = np.sum(np.sum(np.power(sigmoid(theta - beta), data)*
-    #                        np.power(1-sigmoid(beta - beta), data)))
-    
-    
-    # from data dict- order theta and beta according to the order of the data (theta[0] = first user in data_dict)
-    theta_map = []
-    beta_map = []
-    for a in range(len(data['is_correct'])):
-        if not(data['user_id'][a] in theta_map):
-            theta_map.append(data['user_id'][a])
-        if not(data['question_id'][a] in beta_map):
-            beta_map.append(data['question_id'][a])
-    
+    beta_stretch = np.vstack([theta]*data.shape[0])
+    theta_stretch = np.column_stack([beta]*data.shape[1])
+    print(theta_stretch.shape, beta_stretch.shape, data.shape)
     log_lklihood = 0.
-    for a in range(len(data['is_correct'])):
-        cur_prob = math.log(sigmoid(theta[theta_map.index(data['user_id'][a])] - beta[beta_map.index(data['question_id'][a])]))
-        if data['is_correct'][a] == 1:
-            log_lklihood += cur_prob
-        else:
-            log_lklihood += 1 - cur_prob
-    
+    term1= np.power(np.log(sigmoid(theta_stretch - beta_stretch)), data)
+    term1[np.isnan(term1)] = 0
+    term2 = np.power(1 - np.log(sigmoid(theta_stretch - beta_stretch)), 1-data)
+    term2[np.isnan(term2)] = 0
+    log_lklihood += np.sum(term1*term2);
+    print(term1)
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -74,55 +62,7 @@ def update_theta_beta(data, lr, theta, beta):
     # TODO:                                                             #
     # Implement the function as described in the docstring.             #
     #####################################################################
-    theta_map = []
-    beta_map = []
-    for a in range(len(data['is_correct'])):
-        if not(data['user_id'][a] in theta_map):
-            theta_map.append(data['user_id'][a])
-        if not(data['question_id'][a] in beta_map):
-            beta_map.append(data['question_id'][a])
-    data_arr = np.column_stack((data["user_id"], data["question_id"], data["is_correct"]))
-    copy_theta = theta.copy()
     
-    for i in range(len(theta)):
-        # print(theta[i] - beta)
-        # t_update = lr * np.sum(1/(1 + np.exp(theta[i] - beta)))
-        t_update = 0
-        for j in range(len(beta)):
-            prob_if_correct = 1/(1 + np.exp(theta[i] - beta[j]))
-            index = -1
-            masked = np.copy(data_arr)
-            # masked[np.where((masked[:,0] == theta_map[i]) & (masked[:,1] == beta_map[j]))]
-            masked_1 = masked[:, 0]
-            masked_2 = masked[:, 1]
-            masked_1 = np.where(masked_1 == theta_map[i], 1, 0)
-            masked_2 = np.where(masked_2 == beta_map[j], 1, 0)
-            masked_end = masked_1 & masked_2
-            masked_3 = masked[:, 2]
-            masked = masked_3 & masked_end
-            # print(masked, theta_map[i], beta_map[j])
-            if np.sum(masked) == 1:
-                t_update += prob_if_correct
-            else:
-                t_update -= prob_if_correct
-        theta[i] += lr*t_update
-    for j in range(len(beta)):
-        # print(copy_theta - beta[j])
-        # beta[j] += lr * np.sum(1/(1 + np.exp(copy_theta - beta[j])))
-        b_update = 0
-        for i in range(len(theta)):
-            prob_if_correct = 1/(1 + np.exp(theta[i] - beta[j]))
-            index = -1
-            for aa in range(len(data['is_correct'])):
-                if data['user_id'][aa] == theta[i] and data['user_id'][aa] == beta[j]:
-                    index = aa
-                    break
-            if data['is_correct'][index] == 1:
-                b_update += prob_if_correct
-            else:
-                b_update -= prob_if_correct
-        # print(t_update)
-        beta[i] += lr*b_update
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -143,18 +83,14 @@ def irt(data, val_data, lr, iterations):
     :return: (theta, beta, val_acc_lst)
     """
     # TODO: Initialize theta and beta.
-    theta_map = set()
-    beta_map = set()
-    for a in range(len(data['is_correct'])):
-        theta_map.add(data['user_id'][a])
-        beta_map.add(data['question_id'][a])
-    theta = np.ones(len(theta_map))*0.5
-    beta = np.ones(len(beta_map))*0.5
+    theta = np.ones(data.shape[1])*0.5
+    beta = np.ones(data.shape[0])*0.5
 
     val_acc_lst = []
 
     for i in range(iterations):
         neg_lld = neg_log_likelihood(data, theta=theta, beta=beta)
+        print(neg_lld)
         score = evaluate(data=val_data, theta=theta, beta=beta)
         val_acc_lst.append(score)
         print(theta[0])
@@ -187,7 +123,7 @@ def evaluate(data, theta, beta):
 def main():
     train_data = load_train_csv("data")
     # You may optionally use the sparse matrix.
-    sparse_matrix = load_train_sparse("data")
+    sparse_matrix = load_train_sparse("data").toarray()
     val_data = load_valid_csv("data")
     test_data = load_public_test_csv("data")
 
@@ -196,7 +132,7 @@ def main():
     # Tune learning rate and number of iterations. With the implemented #
     # code, report the validation and test accuracy.                    #
     #####################################################################
-    irt(train_data, val_data, 1, 3);
+    irt(sparse_matrix, val_data, 1, 3);
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
