@@ -25,6 +25,22 @@ def knn_impute_by_user(matrix, valid_data, k):
     return acc
 
 
+def knn_impute_ensemble(matrix, k):
+    """Returns just the trained matrix without calculating accuracy
+
+    Args:
+        matrix (_type_): _description_
+        valid_data (_type_): _description_
+        k (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    nbrs = KNNImputer(n_neighbors=k)
+    # We use NaN-Euclidean distance measure.
+    return nbrs.fit_transform(matrix)
+
+
 def knn_impute_by_item(matrix, valid_data, k):
     """ Fill in the missing values using k-Nearest Neighbors based on
     question similarity. Return the accuracy on valid_data.
