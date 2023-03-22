@@ -25,13 +25,6 @@ def neg_log_likelihood(data, theta, beta):
     # TODO:                                                             #
     # Implement the function as described in the docstring.             #
     #####################################################################
-    # log_lklihood = 0.
-    # for a in range(len(data['is_correct'])):
-    #     cur_prob = math.log(sigmoid(theta[data['user_id'][a]] - beta[data['question_id'][a]]))
-    #     if data['is_correct'][a] == 1:
-    #         log_lklihood += cur_prob
-    #     else:
-    #         log_lklihood += 1 - cur_prob
     beta_stretch = np.vstack([beta]*data.shape[0])
     theta_stretch = np.column_stack([theta]*data.shape[1])
     # print(theta_stretch.shape, beta_stretch.shape, data.shape)
@@ -40,6 +33,7 @@ def neg_log_likelihood(data, theta, beta):
     term2 = np.power(1 - np.log(sigmoid(theta_stretch - beta_stretch)), 1-data)
     term2[np.isnan(term2)] = 0
     log_lklihood = np.sum(term1*term2);
+    # print(term1)
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -87,58 +81,6 @@ def update_theta_beta(data, lr, theta, beta):
     
     theta += lr*np.sum(theta_is_correct + theta_not_correct, axis=1)
     beta += lr*np.sum((beta_is_correct + beta_not_correct).T, axis=1)
-    
-    # data_arr = np.column_stack((data["user_id"], data["question_id"], data["is_correct"]))
-    # copy_theta = theta.copy()
-    # theta_stretch = np.column_stack(theta*len(beta))
-    # beta_stretch = np.vstack(beta*len(theta))
-    # theta = np.sum(1/(1+np.exp(theta_stretch - beta_stretch)))
-    # # based on if c = 1
-    
-    # for i in range(len(theta)):
-    #     t_update = 0
-    #     for j in range(len(beta)):
-    #         deriv_if_correct = 1/(1 + np.exp(theta[i] - beta[j]))
-    #         # index = -1
-    #         # for aa in range(len(data['is_correct'])):
-    #         #     if data['user_id'][aa] == i and data['question_id'][aa] == j:
-    #         #         index = aa
-    #         #         break
-    #         # if data['is_correct'][index] == 1:
-    #         #     t_update += deriv_if_correct
-    #         # else:
-    #         #     t_update -= deriv_if_correct
-    #         masked = np.copy(data_arr)
-    #         masked_1 = masked[:, 0]
-    #         masked_2 = masked[:, 1]
-    #         masked_1 = np.where(masked_1 == i, 1, 0)
-    #         masked_2 = np.where(masked_2 == j, 1, 0)
-    #         masked_end = masked_1 & masked_2
-    #         masked_3 = masked[:, 2]
-    #         masked = masked_3 & masked_end
-    #         # print(masked, theta_map[i], beta_map[j])
-    #         if np.sum(masked) == 1:
-    #             t_update += deriv_if_correct
-    #         else:
-    #             t_update -= deriv_if_correct
-    #     theta[i] += lr*t_update
-    # for j in range(len(beta)):
-    #     # print(copy_theta - beta[j])
-    #     # beta[j] += lr * np.sum(1/(1 + np.exp(copy_theta - beta[j])))
-    #     b_update = 0
-    #     for i in range(len(theta)):
-    #         prob_if_correct = 1/(1 + np.exp(theta[i] - beta[j]))
-    #         index = -1
-    #         for aa in range(len(data['is_correct'])):
-    #             if data['user_id'][aa] == theta[i] and data['user_id'][aa] == beta[j]:
-    #                 index = aa
-    #                 break
-    #         if data['is_correct'][index] == 1:
-    #             b_update += prob_if_correct
-    #         else:
-    #             b_update -= prob_if_correct
-    #     # print(t_update)
-    #     beta[i] += lr*b_update
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -159,18 +101,14 @@ def irt(data, val_data, lr, iterations):
     :return: (theta, beta, val_acc_lst)
     """
     # TODO: Initialize theta and beta.
-    theta_map = set()
-    beta_map = set()
-    for a in range(len(data['is_correct'])):
-        theta_map.add(data['user_id'][a])
-        beta_map.add(data['question_id'][a])
-    theta = np.ones(len(theta_map))*0.5
-    beta = np.ones(len(beta_map))*0.5
+    theta = np.ones(data.shape[0])*0.5
+    beta = np.ones(data.shape[1])*0.5
 
     val_acc_lst = []
 
     for i in range(iterations):
         neg_lld = neg_log_likelihood(data, theta=theta, beta=beta)
+        # print("done")
         score = evaluate(data=val_data, theta=theta, beta=beta)
         val_acc_lst.append(score)
         print("NLLK: {} \t Score: {}".format(neg_lld, score))
@@ -211,7 +149,7 @@ def main():
     # Tune learning rate and number of iterations. With the implemented #
     # code, report the validation and test accuracy.                    #
     #####################################################################
-    irt(train_data, val_data, 1, 100);
+    irt(sparse_matrix, val_data, .1, 80);
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
