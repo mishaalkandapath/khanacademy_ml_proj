@@ -80,5 +80,7 @@ def main():
     print("Ensembled validation accuracy: {}".format(valid_acc))
     print("Ensembled test accuracy: {}".format(test_acc))
 
+if __name__ == "__main__":
+    main()
     
     
