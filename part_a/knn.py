@@ -2,7 +2,6 @@ from sklearn.impute import KNNImputer
 from utils_a import *
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 def knn_impute_by_user(matrix, valid_data, k):
     """ Fill in the missing values using k-Nearest Neighbors based on
@@ -26,15 +25,15 @@ def knn_impute_by_user(matrix, valid_data, k):
 
 
 def knn_impute_ensemble(matrix, valid_data, k):
-    """Returns just the trained matrix without calculating accuracy
+    """Returns just the trained matrix without calculating accuracy- useful for ensemble
 
     Args:
-        matrix (_type_): _description_
-        valid_data (_type_): _description_
-        k (_type_): _description_
+        matrix (2D sparse matrix): training data matrix (empty entries are filled)
+        valid_data (dict): valid data used to evaluate parameter k
+        k (int): number of nearest neighbors
 
     Returns:
-        _type_: _description_
+        sparse matrix: filled training data matrix according to knn
     """
     nbrs = KNNImputer(n_neighbors=k)
     # We use NaN-Euclidean distance measure.
@@ -59,9 +58,9 @@ def knn_impute_by_item(matrix, valid_data, k):
     # Implement the function as described in the docstring.             #
     #####################################################################
     imputer = KNNImputer(n_neighbors=k)
-    # We use NaN-Euclidean distance measure.
-    mat = imputer.fit_transform(matrix.T)
-    acc = sparse_matrix_evaluate(valid_data, mat.T)
+    # apply imputer using transpose- i.e. items = data points, users = features
+    mat = imputer.fit_transform(matrix.T)  
+    acc = sparse_matrix_evaluate(valid_data, mat.T)  # validate with transpose so shape matches
     print("Validation Accuracy: {}".format(acc))
     #####################################################################
     #                       END OF YOUR CODE                            #
@@ -86,21 +85,26 @@ def main():
     # chosen k*.                                                        #
     #####################################################################    
     k = [1, 6, 11, 16, 21, 26]
-    user_k = (-1, -1)
-    item_k = (-1, -1)
+    user_k = (-1, -1)   # stores k with max score and its score
+    item_k = (-1, -1)   # stores k with max score and its score
     val_acc_u = []
     val_acc_i = []
+    # loops through k values for each comparison
     for cur_k in k:
+        # fill matrix and calculate accuracy using helper function
         cur_acc_u = knn_impute_by_user(sparse_matrix, val_data, cur_k)
         cur_acc_i = knn_impute_by_item(sparse_matrix, val_data, cur_k)
         val_acc_u.append(cur_acc_u)
         val_acc_i.append(cur_acc_i)
         if user_k[0] < cur_acc_u:
             user_k = (cur_acc_u, cur_k)
-        if user_k[0] < cur_acc_i:
-            user_k = (cur_acc_i, cur_k)
+        if item_k[0] < cur_acc_i:
+            item_k = (cur_acc_i, cur_k)
+    # report accuracy for the best performing k for item and user
     knn_impute_by_user(sparse_matrix, test_data, user_k[1])
     knn_impute_by_item(sparse_matrix, test_data, user_k[1])
+    
+    # plot results
     plt.plot(k, val_acc_u, label="User")
     plt.plot(k, val_acc_i, label="Question")
     plt.xlabel("k value")
