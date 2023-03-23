@@ -25,7 +25,7 @@ def knn_impute_by_user(matrix, valid_data, k):
     return acc
 
 
-def knn_impute_ensemble(matrix, k):
+def knn_impute_ensemble(matrix, valid_data, k):
     """Returns just the trained matrix without calculating accuracy
 
     Args:
@@ -38,7 +38,10 @@ def knn_impute_ensemble(matrix, k):
     """
     nbrs = KNNImputer(n_neighbors=k)
     # We use NaN-Euclidean distance measure.
-    return nbrs.fit_transform(matrix)
+    mat = nbrs.fit_transform(matrix)
+    acc = sparse_matrix_evaluate(valid_data, mat)
+    print("Validation Accuracy: {}".format(acc))
+    return mat
 
 
 def knn_impute_by_item(matrix, valid_data, k):

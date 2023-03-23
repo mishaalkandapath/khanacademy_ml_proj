@@ -45,21 +45,35 @@ def load_data(base_path="data"):
     return zero_train_matrix, train_matrix, valid_data, test_data
 
 def evaluate_ensemble(valid_data, zero_train_data, train_data, nn_model, knn_model, irt_models):
+    num_true = 0
+    num_false = 0
     for i, u in enumerate(valid_data["user_id"]):
         inputs = Variable(zero_train_data[u]).unsqueeze(0)
         nn_output = nn_model(inputs)
 
         nn_guess = nn_output[0][valid_data["question_id"][i]].item()
         knn_guess = knn_model[u][valid_data["question_id"][i]]
-        irt_guess = item_response.sigmoid((irt_models[0][u] - irt_models[1][valid_data["question_id"][i]]).sum())
-
+        irt_guess = item_response.sigmoid((irt_models[0][u] - irt_models[1][valid_data["question_id"][i]]))
+        if np.isnan(irt_guess):  # happens due to infinity calculations
+            irt_guess = 1.0
+        x = irt_models[0][u]- irt_models[1][valid_data["question_id"][i]]
+        print(nn_guess, knn_guess, irt_guess, valid_data["is_correct"][i], u, valid_data["question_id"][i])
+        # print("IRT Calc: " + str(x) + ", " + str(np.exp(x)/(1+np.exp(x))))
+        nn_guess = nn_guess if not np.isnan(nn_guess) else 0
+        irt_guess = irt_guess if not np.isnan(irt_guess) else 0
         guess = (nn_guess + knn_guess + irt_guess) / 3
+
+
+        num_true += valid_data["is_correct"][i] == ( guess >= 0.5)
+        num_false += valid_data["is_correct"][i] != ( guess >= 0.5)
 
         #embed it back intpo the matrix
         zero_train_data[u][valid_data["question_id"][i]] = guess
 
     #evaluate the matrix
-    return sparse_matrix_evaluate(zero_train_data, valid_data)
+    print(num_true, num_false, num_true / (num_true + num_false))
+    
+    return sparse_matrix_evaluate(valid_data, zero_train_data)
 
 def main():
     zero_train, train, valid, test = load_data()
@@ -69,9 +83,9 @@ def main():
     nn_model = nn.AutoEncoder(train.shape[1], 100)
     nn.train(nn_model, 0.1, 0.01, train, zero_train, valid, 100)
         
-    knn_matrix = knn.knn_impute_ensemble(train, 10)
+    knn_matrix = knn.knn_impute_ensemble(load_train_sparse("data").toarray(), valid, 10)
     
-    irt_output = item_response.irt_ensemble(train, .2, 50)
+    irt_output = item_response.irt(load_train_sparse("data").toarray(), valid, .2, 100)
     
     # # average and evaluate
     valid_acc = evaluate_ensemble(valid, zero_train, train, nn_model, knn_matrix, irt_output)
