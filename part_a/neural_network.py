@@ -11,6 +11,80 @@ import torch
 
 import matplotlib.pyplot as plt
 
+subjects = []
+
+def load_subjects():
+    """Load all subject ids""" 
+    with open("data/subject_meta.csv") as f:
+        for line in f:
+            line = line.strip().split(",")
+            if line[0] != "subject_id":
+                subjects.append(int(line[0]))
+    subjects = sorted(list(set(subjects)))
+                
+def question_subject_metadata():
+    """ given a question id, return all the subject ids in the question
+
+    :return: A dictionary {question_id: subject_id}
+    """
+    topic_areas = {}
+    with open("data/question_meta.csv") as f:
+        for line in f:
+            line = line.strip().split(",")
+            if line[0] != "question_id":
+                question_id = int(line[0])
+                topics = line[1].split(",")
+                topics[0] = topics[0][2:]
+                if len(topics) > 1:
+                    topics[-1] = topics[-1][:len(topics[-1])-1]
+                for i, topic in enumerate(topics):
+                    topics[i] = int(topic)
+                topic_areas[question_id] = topics
+    return topic_areas
+
+def load_student_metaadata():
+    """ Return a numpy matrix of student metadata in order of student ids"""
+    student_metadata = np.zeros((542, 2))
+    with open("data/student_meta.csv") as f:
+        for line in f:
+            line = line.strip().split(",")
+            if line[0] != "user_id":
+                user_id = int(line[0])
+                gender = int(line[1])
+                student_metadata[user_id][0] = user_id
+                student_metadata[user_id][1] = gender
+    return student_metadata
+
+def assemble_new_data(train_data):
+    """ Assemble the new data matrix with student metadata and question subject metadata
+
+    :return: A numpy matrix of the new data
+    """
+    student_metadata = load_student_metaadata()
+    question_subjects = question_subject_metadata()
+    new_data = np.zeros((542, len(subjects)+2))
+    for i in range(542):
+        new_data[i][j] = student_metadata[i][0]
+        new_data[i][j] = student_metadata[i][1]
+        question_correctness_data = {}
+        for j in range(len(question_subjects)):
+            for k in range(len(question_subjects[j])):
+                if question_subjects[j][k] not in question_correctness_data:
+                    question_correctness_data[question_subjects[j][k]] = [0,0]
+                    if train_data[i][j] == 1:
+                        question_correctness_data[question_subjects[j][k]][0] += 1
+                    elif train_data[i][j] == 0:
+                        question_correctness_data[question_subjects[j][k]][1] += 1
+        for j in range(len(subjects)):
+            if subjects[j] in question_correctness_data:
+                if question_correctness_data[subjects[j]][0] == 0:
+                    new_data[i][j+2] = 0
+                elif question_correctness_data[subjects[j]][1] == 0:
+                    new_data[i][j+2] = 1
+            else:
+                    new_data[i][j+2] = question_correctness_data[subjects[j]][0] / (question_correctness_data[subjects[j]][0] + question_correctness_data[subjects[j]][1])
+
+    return new_data
 
 def load_data(base_path="data"):
     """ Load the data in PyTorch Tensor.
@@ -189,6 +263,8 @@ def plot_loss(train_loss, valid_acc):
 
 def main():
     zero_train_matrix, train_matrix, valid_data, test_data = load_data()
+    
+    print(load_student_metaadata())
 
     #####################################################################
     # TODO:                                                             #

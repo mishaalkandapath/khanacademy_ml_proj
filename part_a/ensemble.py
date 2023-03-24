@@ -57,7 +57,7 @@ def evaluate_ensemble(valid_data, zero_train_data, train_data, nn_model, knn_mod
         if np.isnan(irt_guess):  # happens due to infinity calculations
             irt_guess = 1.0
         x = irt_models[0][u]- irt_models[1][valid_data["question_id"][i]]
-        print(nn_guess, knn_guess, irt_guess, valid_data["is_correct"][i], u, valid_data["question_id"][i])
+        # print(nn_guess, knn_guess, irt_guess, valid_data["is_correct"][i], u, valid_data["question_id"][i])
         # print("IRT Calc: " + str(x) + ", " + str(np.exp(x)/(1+np.exp(x))))
         nn_guess = nn_guess if not np.isnan(nn_guess) else 0
         irt_guess = irt_guess if not np.isnan(irt_guess) else 0
