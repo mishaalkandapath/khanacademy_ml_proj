@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 import matplotlib.pyplot as plt
-
+from scipy.sparse import load_npz, save_npz, csr_matrix
 
 subjects = []
 
@@ -88,14 +88,14 @@ def assemble_new_data(train_data):
             if subjects[j] in question_correctness_data:
                 if question_correctness_data[subjects[j]][0] == 0:
                     new_data[i][j+2] = -1
-                    count += 1
                 elif question_correctness_data[subjects[j]][1] == 0:
                     new_data[i][j+2] = 1
                 else:
                     new_data[i][j+2] = question_correctness_data[subjects[j]][0] / (question_correctness_data[subjects[j]][1])
     #store the matrix as npz
-    savez_npz("data/new_data.npz", new_data)
-    return new_data
+    new_data = csr_matrix(new_data)
+    save_npz("data/new_data.npz", new_data)
+    return new_data 
 
 def load_data(base_path="data"):
     """ Load the data in PyTorch Tensor.
@@ -276,11 +276,18 @@ def main():
     zero_train_matrix, train_matrix, valid_data, test_data = load_data()
 
     #load the sparse augmented data:
-    path = os.path.join("/data", "train_sparse.npz")
+    # load_subjects()
+    path = os.path.join("data", "new_data.npz")
+    # aug_matrix = assemble_new_data(train_matrix)
     aug_matrix = load_npz(path)
+    aug_matrix = aug_matrix.toarray()
+    aug_matrix = aug_matrix[:, 2:3]
+    aug_matrix = np.concatenate((train_matrix, aug_matrix), axis=1)
     zero_train_matrix = aug_matrix.copy()
     # Fill in the missing entries to 0.
     zero_train_matrix[np.isnan(aug_matrix)] = 0
+    zero_train_matrix = torch.FloatTensor(zero_train_matrix)
+    aug_matrix = torch.FloatTensor(aug_matrix)
 
     #####################################################################
     # TODO:                                                             #
@@ -305,8 +312,8 @@ def main():
 
     #choosing k = 100 based on validation accuracy of 0.657, testacc 0.6627
     for lamb in [0.001, 0.01, 0.1, 1]:
-        model = AutoEncoder(zero_train_matrix.shape[1], 100)
-        train(model, lr, lamb, train_matrix, zero_train_matrix, valid_data, k)
+        model = AutoEncoder(aug_matrix.shape[1], 100)
+        train(model, lr, lamb, aug_matrix, zero_train_matrix, valid_data, k)
         test_acc = evaluate(model, zero_train_matrix, test_data)
         print("Test Accuracy: {}".format(test_acc))
     #the model performs significantly worse in terms of loss, less but still worse in terms of validation accuracy
