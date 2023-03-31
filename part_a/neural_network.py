@@ -11,92 +11,6 @@ import torch
 
 import matplotlib.pyplot as plt
 
-
-subjects = []
-
-def load_subjects():
-    """Load all subject ids""" 
-    global subjects
-    with open("data/subject_meta.csv") as f:
-        for line in f:
-            line = line.strip().split(",")
-            if line[0] != "subject_id":
-                subjects.append(int(line[0]))
-    subjects = sorted(list(set(subjects)))
-                
-def question_subject_metadata():
-    """ given a question id, return all the subject ids in the question
-
-    :return: A dictionary {question_id: subject_id}
-    """
-    global subjects
-    topic_areas = {}
-    with open("data/question_meta.csv") as f:
-        for line in f:
-            line = line.strip().split(",")
-            if line[0] != "question_id":
-                question_id = int(line[0])
-                line = line[1:]
-                topics = []
-                for idx, element in enumerate(line):
-                    #extract only the numbers out of all the characters and add to topics
-                    number = ""
-                    for char in element:
-                        if char.isdigit():
-                            number += char
-                    topics.append(int(number))
-                topic_areas[question_id] = topics
-    return topic_areas
-
-def load_student_metaadata():
-    """ Return a numpy matrix of student metadata in order of student ids"""
-    global subjects
-    student_metadata = np.zeros((542, 2))
-    with open("data/student_meta.csv") as f:
-        for line in f:
-            line = line.strip().split(",")
-            if line[0] != "user_id":
-                user_id = int(line[0])
-                gender = int(line[1])
-                student_metadata[user_id][0] = user_id
-                student_metadata[user_id][1] = gender
-    return student_metadata
-
-def assemble_new_data(train_data):
-    """ Assemble the new data matrix with student metadata and question subject metadata
-
-    :return: A numpy matrix of the new data
-    """
-    global subjects
-    student_metadata = load_student_metaadata()
-    question_subjects = question_subject_metadata()
-    new_data = np.zeros((542, len(subjects)+2))
-    new_data = -1 * new_data
-    for i in range(542):
-        new_data[i][0] = student_metadata[i][0]
-        new_data[i][1] = student_metadata[i][1]
-        question_correctness_data = {}
-        for j in range(len(question_subjects)):
-            for k in range(len(question_subjects[j])):
-                if question_subjects[j][k] not in question_correctness_data:
-                    question_correctness_data[question_subjects[j][k]] = [0,0]
-                if train_data[i][j] == 1:
-                    question_correctness_data[question_subjects[j][k]][0] += 1
-                elif train_data[i][j] == 0:
-                    question_correctness_data[question_subjects[j][k]][1] += 1
-        for j in range(len(subjects)):
-            if subjects[j] in question_correctness_data:
-                if question_correctness_data[subjects[j]][0] == 0:
-                    new_data[i][j+2] = -1
-                    count += 1
-                elif question_correctness_data[subjects[j]][1] == 0:
-                    new_data[i][j+2] = 1
-                else:
-                    new_data[i][j+2] = question_correctness_data[subjects[j]][0] / (question_correctness_data[subjects[j]][1])
-    #store the matrix as npz
-    savez_npz("data/new_data.npz", new_data)
-    return new_data
-
 def load_data(base_path="data"):
     """ Load the data in PyTorch Tensor.
 
@@ -123,7 +37,6 @@ def load_data(base_path="data"):
 
     return zero_train_matrix, train_matrix, valid_data, test_data
 
-
 class AutoEncoder(nn.Module):
     def __init__(self, num_question, k=100):
         """ Initialize a class AutoEncoder.
@@ -135,7 +48,9 @@ class AutoEncoder(nn.Module):
 
         # Define linear functions.
         self.g = nn.Linear(num_question, k)
-        self.h = nn.Linear(k, num_question)
+        self.h = nn.Linear(k, k+50)
+        self.f = nn.Linear(k+50, num_question)
+        self.dropout = nn.Dropout(p=0.5)
 
     def get_weight_norm(self):
         """ Return ||W^1||^2 + ||W^2||^2.
@@ -158,7 +73,12 @@ class AutoEncoder(nn.Module):
         # Use sigmoid activations for f and g.                              #
         #####################################################################
         out = inputs
-        out = F.sigmoid(self.h(F.sigmoid(self.g(out))))
+        out = F.sigmoid(self.g(out))
+        # out = self.dropout(out)
+        out = F.sigmoid(self.h(out))
+        out = self.dropout(out)
+        out = self.f(out)
+        out = F.sigmoid(out)
         #####################################################################
         #                       END OF YOUR CODE                            #
         #####################################################################
@@ -185,7 +105,8 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     model.train()
 
     # Define optimizers and loss function.
-    optimizer = optim.SGD(model.parameters(), lr=lr)
+    optimizer = optim.SGD(model.parameters(), lr=lr) #optim.Adam(model.parameters(), lr=lr, weight_decay=0.001, amsgrad=True)
+                            #
     num_student = train_data.shape[0]
 
     #storing data for plotting
@@ -193,6 +114,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     valid_acc_arr = []
 
     for epoch in range(0, num_epoch):
+        # optimizer.param_groups[0]['lr'] = lr * (0.1 ** (epoch // 10))
         train_loss = 0.
 
         for user_id in range(num_student):
@@ -217,7 +139,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
         valid_acc_arr.append(valid_acc)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
-    # plot_loss(train_loss_arr, valid_acc_arr)
+    # plot_loss(train_loss_arr, valid_acc_arr, lr, lamb)
 
     
     #####################################################################
@@ -250,7 +172,7 @@ def evaluate(model, train_data, valid_data):
         total += 1
     return correct / float(total)
 
-def plot_loss(train_loss, valid_acc):
+def plot_loss(train_loss, valid_acc, lr, lamb):
     """ Plot the loss and accuracy curves.
 
     :param train_loss: list
@@ -269,18 +191,11 @@ def plot_loss(train_loss, valid_acc):
     ax2.tick_params('y', colors='r')
 
     fig.tight_layout()
-    plt.savefig("loss.png")
+    plt.savefig("loss_{}_{}.png".format(lr, lamb))
 
 
 def main():
     zero_train_matrix, train_matrix, valid_data, test_data = load_data()
-
-    #load the sparse augmented data:
-    path = os.path.join("/data", "train_sparse.npz")
-    aug_matrix = load_npz(path)
-    zero_train_matrix = aug_matrix.copy()
-    # Fill in the missing entries to 0.
-    zero_train_matrix[np.isnan(aug_matrix)] = 0
 
     #####################################################################
     # TODO:                                                             #
@@ -292,24 +207,26 @@ def main():
     
 
     # Set optimization hyperparameters.
-    lr = 0.1
-    num_epoch = 100
-    lamb = 0
+    lr = 0.01
+    num_epoch = 150
+    lamb = 0.001
 
-    # for k in [10, 50, 100, 200, 500]:
-    #     model = AutoEncoder(train_matrix.shape[1], k)
-    #     print()
-    #     print("k = {}".format(k))
-    #     train(model, lr, lamb, train_matrix, zero_train_matrix,
-    #       valid_data, num_epoch)
-
-    #choosing k = 100 based on validation accuracy of 0.657, testacc 0.6627
-    for lamb in [0.001, 0.01, 0.1, 1]:
-        model = AutoEncoder(zero_train_matrix.shape[1], 100)
-        train(model, lr, lamb, train_matrix, zero_train_matrix, valid_data, k)
+    for k in [10, 50, 100, 200, 500]:
+        model = AutoEncoder(zero_train_matrix.shape[1], k)
+        print()
+        print("k = {}, lamb = {}".format(k, lamb))
+        train(model, lr, lamb, train_matrix, zero_train_matrix, valid_data, num_epoch)
         test_acc = evaluate(model, zero_train_matrix, test_data)
         print("Test Accuracy: {}".format(test_acc))
-    #the model performs significantly worse in terms of loss, less but still worse in terms of validation accuracy
+        
+
+    # choosing k = 100 based on validation accuracy of 0.657, testacc 0.6627
+    # for lamb in [0.001, 0.01, 0.1, 1]:
+    #     model = AutoEncoder(zero_train_matrix.shape[1], k)
+    #     train(model, lr, lamb, train_matrix, zero_train_matrix, valid_data, k)
+    #     test_acc = evaluate(model, zero_train_matrix, test_data)
+    #     print("Test Accuracy: {}".format(test_acc))
+    # the model performs significantly worse in terms of loss, less but still worse in terms of validation accuracy
     
     #####################################################################
     #                       END OF YOUR CODE                            #
@@ -328,3 +245,17 @@ more computationally efficient
 
 if __name__ == "__main__":
     main()
+
+
+"""
+Observations:
+using adam more stable ppredictions, stabilized in range of 68.3 fdoe k =10, 0.001
+using dropout with p=0.5 gave sufficient stability in 0.69 range. 
+using dropout with adam was distrous, gave 0.618
+sgd with momentum did not work
+
+added an extra layer in nn, did dropout on both layers and thot got us into the 70s
+afterwards, set lr to 0.01 and then gradually decrease learning rate and that stabilized us in the 70s
+afterwards dropout was removed from the outer layer and we got a small 4th decimal boost in accuracy
+epcoch 74, 0.723 was the best we ever got at this stage, by dropping out only the outer layer, and not the inner layer
+"""

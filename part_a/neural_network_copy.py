@@ -139,7 +139,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
         valid_acc_arr.append(valid_acc)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
-    # plot_loss(train_loss_arr, valid_acc_arr, lr, lamb)
+    plot_loss(train_loss_arr, valid_acc_arr, lr, lamb)
 
     
     #####################################################################
@@ -208,7 +208,7 @@ def main():
 
     # Set optimization hyperparameters.
     lr = 0.01
-    num_epoch = 100
+    num_epoch = 90
     lamb = 0.001
 
     for k in [10, 50, 100, 200, 500]:

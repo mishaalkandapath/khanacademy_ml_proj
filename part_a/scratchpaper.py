@@ -34,6 +34,7 @@ def correlation_tensor(output):
     # global q_clusters_30subjects  # 53 clusters
     
     matrix = torch.zeros(3, 5, dtype=output.dtype).scatter_(0, q_clusters_15subjects, output)  # 1667 x 35 matrix
+
     avg = torch.sum(matrix, dim=1)/(torch.count_nonzero(matrix, dim=1))     # vector of avgs for each row
     avgs = torch.zeros(3, 5, dtype=output.dtype).scatter_(0, q_clusters_15subjects - avg, output)  # 1667 x 35 matrix
     var = torch.sum(torch.square(matrix - avgs), dim=1)/(torch.count_nonzero(matrix, dim=1))
@@ -43,7 +44,7 @@ def correlation_tensor(output):
 
 
 if __name__ == "__main__":
-    print(max(q_clusters_30subjects))
+    print(len(set(q_clusters_15subjects)))
 
         
           

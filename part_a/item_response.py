@@ -221,9 +221,9 @@ def evaluate(data, theta, beta):
 def main():
     train_data = load_train_csv("data")
     # You may optionally use the sparse matrix.
-    sparse_matrix = load_train_sparse("../data").toarray()
-    val_data = load_valid_csv("../data")
-    test_data = load_public_test_csv("../data")
+    sparse_matrix = load_train_sparse("data").toarray()
+    val_data = load_valid_csv("data")
+    test_data = load_public_test_csv("data")
 
     #####################################################################
     # TODO:                                                             #
@@ -234,13 +234,12 @@ def main():
     theta, beta, val_acc, train_lg, val_lg = irt(sparse_matrix, val_data, .05, iterations)
     print("Final validation accuracy: " + str(val_acc[len(val_acc) - 1]))
     print("Final testing accuracy: " + str(evaluate(test_data, theta, beta)))
-    # print([x for x in range(1, iterations + 1)])
-    plt.plot([x for x in range(1, iterations + 1)], train_lg, label="Train Log Likelihood")
-    plt.plot([x for x in range(1, iterations + 1)], val_lg, label="Validation Log Likelihood")
-    plt.xlabel("Iterations")
-    plt.ylabel("Log Likelihood")
-    plt.legend(loc="upper left")
-    plt.savefig("item_response.png")    
+    # plt.plot([x for x in range(1, iterations + 1)], train_lg, label="Train Log Likelihood")
+    # plt.plot([x for x in range(1, iterations + 1)], val_lg, label="Validation Log Likelihood")
+    # plt.xlabel("Iterations")
+    # plt.ylabel("Log Likelihood")
+    # plt.legend(loc="upper left")
+    # plt.savefig("item_response.png")    
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -249,15 +248,16 @@ def main():
     # TODO:                                                             #
     # Implement part (d)                                                #
     #####################################################################
-    j = [1, 2, 3]
+    j = [1, 20, 1000]
     prob_correct = []
     # plot the probability over theta
     theta_sorted = np.sort(theta)
     for i in j:
         prob_correct.append(sigmoid(theta_sorted - beta[i]))
         
-    plt.plot(theta, prob_correct[0], label="one")
-    plt.plot(theta, prob_correct[1], label="two")
+    plt.plot(theta_sorted, prob_correct[0], label="one")
+    plt.plot(theta_sorted, prob_correct[1], label="twenty")
+    plt.plot(theta_sorted, prob_correct[2], label="one thousand")
     plt.xlabel("Theta")
     plt.ylabel("Probability")
     plt.legend(loc="upper left")
