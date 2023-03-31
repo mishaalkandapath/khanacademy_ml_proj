@@ -57,8 +57,6 @@ def evaluate_ensemble(valid_data, zero_train_data, train_data, nn_model, knn_mod
         if np.isnan(irt_guess):  # happens due to infinity calculations
             irt_guess = 1.0
         x = irt_models[0][u]- irt_models[1][valid_data["question_id"][i]]
-        # print(nn_guess, knn_guess, irt_guess, valid_data["is_correct"][i], u, valid_data["question_id"][i])
-        # print("IRT Calc: " + str(x) + ", " + str(np.exp(x)/(1+np.exp(x))))
         nn_guess = nn_guess if not np.isnan(nn_guess) else 0
         irt_guess = irt_guess if not np.isnan(irt_guess) else 0
         guess = (nn_guess + knn_guess + irt_guess) / 3
@@ -80,8 +78,8 @@ def main():
     
     # train generate predictions
     # train on the neural network:
-    nn_model = nn.AutoEncoder(train.shape[1], 100)
-    nn.train(nn_model, 0.1, 0.01, train, zero_train, valid, 100)
+    nn_model = nn.AutoEncoder(train.shape[1], 50)
+    nn.train(nn_model, 0.05, 0.001, train, zero_train, valid, 15)
         
     knn_matrix = knn.knn_impute_ensemble(load_train_sparse("data").toarray(), valid, 10)
     

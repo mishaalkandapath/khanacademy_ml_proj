@@ -85,7 +85,7 @@ class AutoEncoder(nn.Module):
         return out
 
 
-def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
+def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch, k):
     """ Train the neural network, where the objective also includes
     a regularizer.
 
@@ -139,7 +139,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
         valid_acc_arr.append(valid_acc)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
-    plot_loss(train_loss_arr, valid_acc_arr, lr, lamb)
+    plot_loss(train_loss_arr, valid_acc_arr, k)
 
     
     #####################################################################
@@ -172,7 +172,7 @@ def evaluate(model, train_data, valid_data):
         total += 1
     return correct / float(total)
 
-def plot_loss(train_loss, valid_acc, lr, lamb):
+def plot_loss(train_loss, valid_acc, k):
     """ Plot the loss and accuracy curves.
 
     :param train_loss: list
@@ -191,7 +191,7 @@ def plot_loss(train_loss, valid_acc, lr, lamb):
     ax2.tick_params('y', colors='r')
 
     fig.tight_layout()
-    plt.savefig("loss_{}_{}.png".format(lr, lamb))
+    plt.savefig("loss_{}_modified.png".format(k))
 
 
 def main():
@@ -215,9 +215,8 @@ def main():
         model = AutoEncoder(zero_train_matrix.shape[1], k)
         print()
         print("k = {}, lamb = {}".format(k, lamb))
-        train(model, lr, lamb, train_matrix, zero_train_matrix, valid_data, num_epoch)
+        train(model, lr, lamb, train_matrix, zero_train_matrix, valid_data, num_epoch, k)
         test_acc = evaluate(model, zero_train_matrix, test_data)
-        print("Test Accuracy: {}".format(test_acc))
         
 
     # choosing k = 100 based on validation accuracy of 0.657, testacc 0.6627
@@ -258,4 +257,13 @@ added an extra layer in nn, did dropout on both layers and thot got us into the 
 afterwards, set lr to 0.01 and then gradually decrease learning rate and that stabilized us in the 70s
 afterwards dropout was removed from the outer layer and we got a small 4th decimal boost in accuracy
 epcoch 74, 0.723 was the best we ever got at this stage, by dropping out only the outer layer, and not the inner layer
+"""
+
+
+
+"""
+Final modified model stats:
+best K = 10
+valid acc = 0.7020886254586508
+test_acc = 0.7019475021168501
 """

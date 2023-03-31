@@ -48,9 +48,7 @@ class AutoEncoder(nn.Module):
 
         # Define linear functions.
         self.g = nn.Linear(num_question, k)
-        self.h = nn.Linear(k, k+50)
-        self.f = nn.Linear(k+50, num_question)
-        self.dropout = nn.Dropout(p=0.5)
+        self.h = nn.Linear(k, num_question)
 
     def get_weight_norm(self):
         """ Return ||W^1||^2 + ||W^2||^2.
@@ -73,12 +71,7 @@ class AutoEncoder(nn.Module):
         # Use sigmoid activations for f and g.                              #
         #####################################################################
         out = inputs
-        out = F.sigmoid(self.g(out))
-        # out = self.dropout(out)
-        out = F.sigmoid(self.h(out))
-        out = self.dropout(out)
-        out = self.f(out)
-        out = F.sigmoid(out)
+        out = F.sigmoid(self.h(F.sigmoid(self.g(out))))
         #####################################################################
         #                       END OF YOUR CODE                            #
         #####################################################################
@@ -105,8 +98,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     model.train()
 
     # Define optimizers and loss function.
-    optimizer = optim.SGD(model.parameters(), lr=lr) #optim.Adam(model.parameters(), lr=lr, weight_decay=0.001, amsgrad=True)
-                            #
+    optimizer = optim.SGD(model.parameters(), lr=lr)
     num_student = train_data.shape[0]
 
     #storing data for plotting
@@ -114,7 +106,6 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
     valid_acc_arr = []
 
     for epoch in range(0, num_epoch):
-        # optimizer.param_groups[0]['lr'] = lr * (0.1 ** (epoch // 10))
         train_loss = 0.
 
         for user_id in range(num_student):
@@ -139,7 +130,7 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
         valid_acc_arr.append(valid_acc)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
-    # plot_loss(train_loss_arr, valid_acc_arr, lr, lamb)
+    plot_loss(train_loss_arr, valid_acc_arr, lr, lamb)
 
     
     #####################################################################
@@ -203,30 +194,32 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = 100
+    k = 50
     
 
     # Set optimization hyperparameters.
-    lr = 0.01
-    num_epoch = 150
-    lamb = 0.001
+    lr = 0.05
+    num_epoch = 15
+    lamb = 0
 
-    for k in [10, 50, 100, 200, 500]:
+    #leaving these lines to show how I chose k and lambda
+
+    # for k in [10, 50, 100, 200, 500]:
+    #     model = AutoEncoder(zero_train_matrix.shape[1], k)
+    #     print()
+    #     print("k = {}, lamb = {}".format(k, lamb))
+    #     train(model, lr, lamb, train_matrix, zero_train_matrix, valid_data, num_epoch, k)
+    #     test_acc = evaluate(model, zero_train_matrix, test_data)
+    #     print("Test Accuracy: {}".format(test_acc))
+        
+
+    # choosing k = 50 based on validation accuracy of 0.657, testacc 0.6627
+    for lamb in [0.001, 0.01, 0.1, 1]:
         model = AutoEncoder(zero_train_matrix.shape[1], k)
-        print()
-        print("k = {}, lamb = {}".format(k, lamb))
         train(model, lr, lamb, train_matrix, zero_train_matrix, valid_data, num_epoch)
         test_acc = evaluate(model, zero_train_matrix, test_data)
         print("Test Accuracy: {}".format(test_acc))
-        
-
-    # choosing k = 100 based on validation accuracy of 0.657, testacc 0.6627
-    # for lamb in [0.001, 0.01, 0.1, 1]:
-    #     model = AutoEncoder(zero_train_matrix.shape[1], k)
-    #     train(model, lr, lamb, train_matrix, zero_train_matrix, valid_data, k)
-    #     test_acc = evaluate(model, zero_train_matrix, test_data)
-    #     print("Test Accuracy: {}".format(test_acc))
-    # the model performs significantly worse in terms of loss, less but still worse in terms of validation accuracy
+    # chosing lambda = 0.001
     
     #####################################################################
     #                       END OF YOUR CODE                            #

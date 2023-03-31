@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import kneed
 
 subjects = []
+#clusters of the different subjects stored globally for visualization
 clusters1 = """ 
 [13 27  6 29  4 20  3 23 12 29  9  3 26  0 25 29  3 11  1 10  9  4 10  3
  16 25  2 21  9  8 17 10  1  4  2 24 16 23  1 28 15 17 22  2  1 25 28 29
